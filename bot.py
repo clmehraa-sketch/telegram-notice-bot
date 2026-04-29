@@ -20,32 +20,51 @@ URLS = [
 ]
 
 bot = telegram.Bot(token=TOKEN)
+
+# Store already sent links
 sent_links = set()
 
 def check_updates():
     global sent_links
+
     for url in URLS:
         try:
-            r = requests.get(url)
-            soup = BeautifulSoup(r.text, "html.parser")
+            response = requests.get(url, timeout=30)
+            soup = BeautifulSoup(response.text, "html.parser")
 
             links = soup.find_all("a")
 
             for link in links:
                 href = link.get("href")
+
                 if href and ".pdf" in href:
-                    full_link = href if href.startswith("http") else url + href
+                    if href.startswith("http"):
+                        full_link = href
+                    else:
+                        full_link = url + href
 
                     if full_link not in sent_links:
+                        message = f"📢 New PDF Found:\n{full_link}"
+
                         bot.send_message(
                             chat_id=CHAT_ID,
-                            text=f"📢 New PDF Found:\n{full_link}"
+                            text=message
                         )
+
+                        print("Sent:", full_link)
+
                         sent_links.add(full_link)
 
         except Exception as e:
             print("Error:", e)
 
+
+print("Bot started... Checking immediately")
+
+# FIRST TEST RUN (immediate check)
+check_updates()
+
+# Continuous loop
 while True:
     check_updates()
-    time.sleep(600)
+    time.sleep(600)  # 10 minutes

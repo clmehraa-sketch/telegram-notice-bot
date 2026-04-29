@@ -2,6 +2,9 @@ import requests
 from bs4 import BeautifulSoup
 import time
 import telegram
+from flask import Flask
+import threading
+import os
 
 TOKEN = "8795217786:AAGN7jzyPv-rHISq87r2pyU-fgEgVcxaPJQ"
 CHAT_ID = "-1003980509745"
@@ -20,9 +23,13 @@ URLS = [
 ]
 
 bot = telegram.Bot(token=TOKEN)
-
-# Store already sent links
 sent_links = set()
+
+app = Flask(__name__)
+
+@app.route('/')
+def home():
+    return "Bot is running"
 
 def check_updates():
     global sent_links
@@ -58,13 +65,18 @@ def check_updates():
         except Exception as e:
             print("Error:", e)
 
+def run_bot():
+    print("Bot started... Checking immediately")
 
-print("Bot started... Checking immediately")
-
-# FIRST TEST RUN (immediate check)
-check_updates()
-
-# Continuous loop
-while True:
     check_updates()
-    time.sleep(600)  # 10 minutes
+
+    while True:
+        check_updates()
+        time.sleep(600)
+
+# Run bot in background thread
+threading.Thread(target=run_bot).start()
+
+# Start web server (for Render free plan)
+port = int(os.environ.get("PORT", 10000))
+app.run(host="0.0.0.0", port=port)
